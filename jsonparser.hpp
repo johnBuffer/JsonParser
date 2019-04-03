@@ -9,6 +9,14 @@ namespace jsp
 		Base class for all kind of JSON objects
 	*/
 
+	enum ObjectType
+	{
+		JSON_NONE,
+		JSON_DATA,
+		JSON_ARRAY,
+		JSON_OBJECT
+	};
+
 	struct JsonBase
 	{
 		JsonBase() = default;
@@ -72,13 +80,13 @@ namespace jsp
 			JsonBase()
 		{}
 
-		void add(const std::string& key, const JsonObject& child)
+		void add(const std::string& key, JsonBase* child)
 		{
 			m_childs[key] = child;
 		}
 
 		std::string m_value;
-		std::map<std::string, JsonObject> m_childs;
+		std::map<std::string, JsonBase*> m_childs;
 	};
 
 	struct JsonArray : public JsonBase
@@ -123,31 +131,52 @@ namespace jsp
 		return false;
 	}
 
-	JsonObject parse(const std::string& raw_data, uint32_t start, uint32_t& end)
+	// Get next object
+	JsonObject* getObject(const std::string& raw_data, uint32_t start, uint32_t& end)
 	{
-		JsonObject root;
+		JsonObject* object = new JsonObject();
+
 		uint32_t size(raw_data.size());
-		if (!size)
-			return root;
-		
-		for (uint32_t i(start); i < size; ++i)
+		if (size == 0)
+			return object;
+
+		uint32_t i(start);
+		while (i < size)
 		{
-			const char c(raw_data[i]);
-			if (c == '{')
+			uint32_t id_start, id_length;
+			if (getIdentifier(raw_data, i, id_start, id_length))
 			{
-				uint32_t id_start, id_length;
-				if (getIdentifier(raw_data, i + 1, id_start, id_length))
+				const std::string identifier = raw_data.substr(id_start, id_length);
+				
+				for (uint32_t j(id_start + id_length + 1); j < size; ++j)
 				{
-					root.add(raw_data.substr(id_start, id_length), parse(raw_data, id_start + id_length, i));
+					uint32_t val_start(0);
+					const char c(raw_data[j]);
+					if (c == '{')
+					{
+						object->add(identifier, getObject(raw_data, j, i));
+						break;
+					}
+					else if (c != ' ' && !val_start)
+					{
+						val_start = j;
+					}
+					else if (c == ',')
+					{
+						uint32_t data_length(j - val_start);
+						JsonData* data = new JsonData();
+						object->add(identifier, data);
+						break;
+					}
 				}
-			}
-			else if (c == '}')
-			{
-				end = i + 1;
-				break;
 			}
 		}
 
-		return root;
+		return object;
+	}
+
+	JsonBase* parse(const std::string& raw_data, uint32_t start, uint32_t& end)
+	{
+		uint32_t size(raw_data.size());
 	}
 }
