@@ -10,6 +10,7 @@ namespace jsp
 		JsonClosedBrace = '}',
 		JsonOpenBraket = '[',
 		JsonClosedBracket = ']',
+		JsonQuote = '"',
 		JsonComa = ',',
 		JsonColumn = ':',
 		JsonNewLine = '\n',
@@ -17,25 +18,36 @@ namespace jsp
 		JsonTab = '\t'
 	};
 
-	std::string extract(const std::string& str, size_t start, size_t end)
+	const std::string extract(const std::string& str, size_t start, size_t end)
 	{
 		return str.substr(start, end - start);
 	}
 
-	JsonBase* getChild(const std::string& raw_data, size_t& index);
-
-	void skipSpace(const std::string& raw_data, size_t& index)
+	const std::string getQuotedValue(const std::string& str, size_t& index)
 	{
-		const size_t size(raw_data.size());
+		const size_t size(str.size());
+		const size_t start(index);
+		for (; index < size; ++index) {
+			if (str[index] == JsonToken::JsonQuote) {
+				return extract(str, start, index);
+			}
+		}
+
+		return std::string();
+	}
+
+	void skipSpace(const std::string& str, size_t& index)
+	{
+		const size_t size(str.size());
 		for (;index < size; ++index)
 		{
-			const char c(raw_data[index]);
+			const char c(str[index]);
 			if (c != JsonToken::JsonSpace && c != JsonToken::JsonTab) {
 				return;
 			}
 		}
 	}
-
+	
 	bool getIdentifier(const std::string& raw_data, size_t& index, size_t& id_start)
 	{
 		id_start = 0;
@@ -60,6 +72,8 @@ namespace jsp
 		return false;
 	}
 
+	JsonBase* getChild(const std::string& raw_data, size_t& index);
+	
 	JsonData* getValue(const std::string& raw_data, size_t& index)
 	{
 		const size_t size(raw_data.size());
@@ -67,13 +81,13 @@ namespace jsp
 		for (; index < size; ++index)
 		{
 			const char c(raw_data[index]);
-			if (c == JsonToken::JsonClosedBrace || 
-				c == JsonToken::JsonClosedBracket || 
-				c == JsonToken::JsonComa)
+			if (c == JsonToken::JsonClosedBrace || c == JsonToken::JsonClosedBracket || c == JsonToken::JsonComa)
 			{
-				std::cout << "getValue " << extract(raw_data, val_start, index) << std::endl;
-				JsonData* data = new JsonData(extract(raw_data, val_start, index));
-				return data;
+				return new JsonData(extract(raw_data, val_start, index));
+			}
+			else if (c == JsonToken::JsonQuote)
+			{
+				return new JsonData(getQuotedValue(raw_data, ++index));
 			}
 			else if (c != JsonToken::JsonSpace && !val_start) {
 				val_start = index;
@@ -82,9 +96,9 @@ namespace jsp
 		return new JsonData();
 	}
 
-	JsonObject* getObject(const std::string& raw_data, size_t& index)
+	JsonDict* getObject(const std::string& raw_data, size_t& index)
 	{
-		JsonObject* object(new JsonObject());
+		JsonDict* object(new JsonDict());
 		size_t size(raw_data.size());
 		if (!size) {
 			return object;
@@ -115,7 +129,6 @@ namespace jsp
 		while (index < size)
 		{
 			const char c(raw_data[index]);
-			std::cout << "Array on " << c << std::endl;
 			if (c == JsonToken::JsonClosedBracket) {
 				++index;
 				break;
@@ -133,7 +146,6 @@ namespace jsp
 
 	JsonBase* getChild(const std::string& raw_data, size_t& index)
 	{
-		//std::cout << "getChild " << raw_data.substr(index) << std::endl;
 		size_t size(raw_data.size());
 		for (skipSpace(raw_data, index); index < size; ++index)
 		{

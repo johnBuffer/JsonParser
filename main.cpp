@@ -3,13 +3,10 @@
 
 int main()
 {
-	size_t end;
-
-	const std::string data("{ \
-		lol: 7,\
+	const std::string data("{lol: 7,\
         k: 5,\
         mam: {\
-            j: 78\
+            j: \"78 {}\"     \
         },\
 		lil : { \
 		ar : [5, 6, 7],\
@@ -17,9 +14,10 @@ int main()
 		}\
      }");
 
-	jsp::JsonObject* root = jsp::getObject(data, end);
+	size_t end(0);
+	jsp::JsonObject root(jsp::getObject(data, end));
 
-	root->print("");
+	std::cout << root["mam"]["j"].asString() << std::endl;
 
 	return 0;
 }
