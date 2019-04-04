@@ -14,7 +14,7 @@ int main()
 		lil : {}\
      }");
 
-	jsp::JsonObject* root = jsp::getObject(data, 0, end);
+	jsp::JsonObject* root = jsp::getObject(data, end);
 	
 	root->print("");
 

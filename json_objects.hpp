@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <iostream>
 
@@ -39,14 +39,8 @@ struct JsonData : public JsonBase
 		{
 			r = std::stoi(m_data);
 		}
-		catch (std::invalid_argument&)
-		{
-			// No an int
-		}
-		catch (std::out_of_range&)
-		{
-			// Too big
-		}
+		catch (std::invalid_argument&) {}
+		catch (std::out_of_range&) {}
 
 		return r;
 	}
@@ -58,14 +52,8 @@ struct JsonData : public JsonBase
 		{
 			r = std::stof(m_data);
 		}
-		catch (std::invalid_argument&)
-		{
-			// No a float
-		}
-		catch (std::out_of_range&)
-		{
-			// Too big
-		}
+		catch (std::invalid_argument&) {}
+		catch (std::out_of_range&) {}
 
 		return r;
 	}
@@ -75,7 +63,7 @@ struct JsonData : public JsonBase
 		return m_data;
 	}
 
-	void print(const std::string& indent) const
+	void print(const std::string&) const
 	{
 		std::cout << m_data << std::endl;
 	}
@@ -107,7 +95,7 @@ struct JsonObject : public JsonBase
 	}
 
 	std::string m_value;
-	std::map<std::string, JsonBase*> m_childs;
+	std::unordered_map<std::string, JsonBase*> m_childs;
 };
 
 struct JsonArray : public JsonBase

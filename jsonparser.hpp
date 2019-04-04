@@ -17,54 +17,40 @@ namespace jsp
 
 	std::string extract(const std::string& str, size_t start, size_t end)
 	{
-		size_t length(end - start);
-		return str.substr(start, length);
+		return str.substr(start, end - start);
 	}
 
-	JsonBase* getChild(const std::string& raw_data, size_t start, size_t& end);
+	JsonBase* getChild(const std::string& raw_data, size_t& index);
 
-	size_t skipSpace(const std::string& raw_data, size_t start)
+	void skipSpace(const std::string& raw_data, size_t& index)
 	{
 		const size_t size(raw_data.size());
-		for (size_t i(start); i < size; ++i)
+		for (;index < size; ++index)
 		{
-			const char c(raw_data[i]);
-			if (c != JsonToken::JsonSpace && c != JsonToken::JsonTab)
-			{
-				return i;
+			const char c(raw_data[index]);
+			if (c != JsonToken::JsonSpace && c != JsonToken::JsonTab) {
+				return;
 			}
 		}
-
-		return size;
 	}
 
-	bool getIdentifier(const std::string& raw_data, size_t start, size_t& id_start, size_t& id_length)
+	bool getIdentifier(const std::string& raw_data, size_t& index, size_t& id_start)
 	{
 		id_start = 0;
 		size_t size(raw_data.size());
-		size_t i(skipSpace(raw_data, start));
-
-		for (i; i < size; ++i)
+		for (skipSpace(raw_data, index); index < size; ++index)
 		{
-			const char c(raw_data[i]);
+			const char c(raw_data[index]);
 			if (!id_start)
 			{
-				if (c == JsonToken::JsonClosedBracket)
-				{
+				if (c == JsonToken::JsonClosedBracket) {
 					return false;
-				}
-				else if (c == JsonToken::JsonTwoPoints)
-				{
+				} else if (c == JsonToken::JsonTwoPoints) {
 					return false;
+				} else if (c != JsonToken::JsonNewLine) {
+					id_start = index;
 				}
-				else if (c != JsonToken::JsonNewLine)
-				{
-					id_start = i;
-				}
-			}
-			else if (c == JsonToken::JsonTwoPoints)
-			{
-				id_length = i - id_start;
+			} else if (c == JsonToken::JsonTwoPoints) {
 				return true;
 			}
 		}
@@ -73,80 +59,60 @@ namespace jsp
 	}
 
 	// Get next object
-	JsonObject* getObject(const std::string& raw_data, size_t start, size_t& end)
+	JsonObject* getObject(const std::string& raw_data, size_t& index)
 	{
 		JsonObject* object = new JsonObject();
-
 		size_t size(raw_data.size());
-		if (size == 0)
+		if (size == 0) {
 			return object;
+		}
 
-		size_t i(start);
-		while (i < size)
+		while (index < size)
 		{
-			size_t id_start, id_length;
-			if (raw_data[i] == JsonToken::JsonClosedBracket)
-			{
+			size_t id_start;
+			if (raw_data[index] == JsonToken::JsonClosedBracket) {
 				break;
-			}
-			else if (getIdentifier(raw_data, i + 1, id_start, id_length))
-			{
-				const std::string identifier = raw_data.substr(id_start, id_length);
-				i = id_start + id_length + 1;
-				object->add(identifier, getChild(raw_data, i, i));
-			} 
-			else
-			{
-				++i;
+			} else if (getIdentifier(raw_data, ++index, id_start)) {
+				const std::string identifier(extract(raw_data, id_start, index++));
+				object->add(identifier, getChild(raw_data, index));
+			} else {
+				++index;
 			}
 		}
 
-		end = i + 1;
 		return object;
 	}
 
-	JsonData* getValue(const std::string& raw_data, size_t start, size_t& end)
+	JsonData* getValue(const std::string& raw_data, size_t& index)
 	{
 		const size_t size(raw_data.size());
-
 		size_t val_start(0);
-		for (size_t i(start); i < size; ++i)
+		for (;index < size; ++index)
 		{
-			const char c(raw_data[i]);
+			const char c(raw_data[index]);
 			if (c == JsonToken::JsonClosedBracket || c == JsonToken::JsonComa)
 			{
-				end = i;
-				JsonData* data = new JsonData(extract(raw_data, val_start, i));
+				JsonData* data = new JsonData(extract(raw_data, val_start, index));
 				return data;
-			}
-			else if (c != JsonToken::JsonSpace && !val_start)
-			{
-				val_start = i;
+			} else if (c != JsonToken::JsonSpace && !val_start) {
+				val_start = index;
 			}
 		}
-
-		end = size;
 		return new JsonData();
 	}
 
-	JsonBase* getChild(const std::string& raw_data, size_t start, size_t& end)
+	JsonBase* getChild(const std::string& raw_data, size_t& index)
 	{
 		size_t size(raw_data.size());
-
-		for (size_t j(skipSpace(raw_data, start)); j < size; ++j)
+		for (skipSpace(raw_data, index); index < size; ++index)
 		{
-			end = j;
-			const char c(raw_data[j]);
-			if (c == JsonToken::JsonOpenBracket)
-			{
-				return getObject(raw_data, j, end);
-			}
-			else
-			{
-				return getValue(raw_data, j, end);
+			const char c(raw_data[index]);
+			if (c == JsonToken::JsonOpenBracket) {
+				return getObject(raw_data, index);
+			} else {
+				return getValue(raw_data, index);
 			}
 		}
-
 		return new JsonData();
 	}
 }
