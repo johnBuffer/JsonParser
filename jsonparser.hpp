@@ -1,147 +1,68 @@
 #pragma once
-#include <vector>
-#include <map>
-#include <string>
-#include <iostream>
+
+#include "json_objects.hpp"
 
 namespace jsp
 {
-	/*
-		Base class for all kind of JSON objects
-	*/
-
-	enum ObjectType
+	enum JsonToken
 	{
-		JSON_NONE,
-		JSON_DATA,
-		JSON_ARRAY,
-		JSON_OBJECT
+		JsonOpenBracket = '{',
+		JsonClosedBracket = '}',
+		JsonComa = ',',
+		JsonTwoPoints = ':',
+		JsonNewLine = '\n',
+		JsonSpace = ' ',
+		JsonTab = '\t'
 	};
 
-	struct JsonBase
+	std::string extract(const std::string& str, size_t start, size_t end)
 	{
-		JsonBase() = default;
+		size_t length(end - start);
+		return str.substr(start, length);
+	}
 
-		virtual void print(const std::string& indent) const = 0;
-	};
+	JsonBase* getChild(const std::string& raw_data, size_t start, size_t& end);
 
-	struct JsonData : public JsonBase
+	size_t skipSpace(const std::string& raw_data, size_t start)
 	{
-		JsonData(const std::string& str = ""):
-			m_data(str)
-		{}
-
-		int32_t asInt() const
-		{
-			int32_t r(0);
-			try
-			{
-				r = std::stoi(m_data);
-			}
-			catch (std::invalid_argument&)
-			{
-				// No an int
-			}
-			catch (std::out_of_range&)
-			{
-				// Too big
-			}
-
-			return r;
-		}
-
-		float asFloat() const
-		{
-			float r(0.0f);
-			try
-			{
-				r = std::stof(m_data);
-			}
-			catch (std::invalid_argument&)
-			{
-				// No a float
-			}
-			catch (std::out_of_range&)
-			{
-				// Too big
-			}
-
-			return r;
-		}
-
-		const std::string& asString() const
-		{
-			return m_data;
-		}
-
-		void print(const std::string& indent) const
-		{
-			std::cout << m_data << std::endl;
-		}
-
-		std::string m_data;
-	};
-
-	struct JsonObject : public JsonBase
-	{
-		JsonObject() :
-			JsonBase()
-		{}
-
-		void add(const std::string& key, JsonBase* child)
-		{
-			m_childs[key] = child;
-		}
-
-		void print(const std::string& indent) const
-		{
-			const std::string next_indent(indent + "    ");
-			std::cout << "{" << std::endl;
-			for (auto jsb : m_childs)
-			{
-				std::cout << next_indent << jsb.first << ": ";
-				jsb.second->print(next_indent);
-			}
-			std::cout << indent << "}" << std::endl;
-		}
-
-		std::string m_value;
-		std::map<std::string, JsonBase*> m_childs;
-	};
-
-	struct JsonArray : public JsonBase
-	{
-		JsonArray();
-
-		void add(const JsonObject& item);
-
-		std::vector<JsonObject> m_items;
-	};
-
-	bool getIdentifier(const std::string& raw_data, uint32_t start, uint32_t& id_start, uint32_t& id_length)
-	{
-		bool found(false);
-		uint32_t size(raw_data.size());
-		for (int i(start); i < size; ++i)
+		const size_t size(raw_data.size());
+		for (size_t i(start); i < size; ++i)
 		{
 			const char c(raw_data[i]);
-			if (!found)
+			if (c != JsonToken::JsonSpace && c != JsonToken::JsonTab)
 			{
-				if (c == '}')
+				return i;
+			}
+		}
+
+		return size;
+	}
+
+	bool getIdentifier(const std::string& raw_data, size_t start, size_t& id_start, size_t& id_length)
+	{
+		id_start = 0;
+		size_t size(raw_data.size());
+		size_t i(skipSpace(raw_data, start));
+
+		for (i; i < size; ++i)
+		{
+			const char c(raw_data[i]);
+			if (!id_start)
+			{
+				if (c == JsonToken::JsonClosedBracket)
 				{
 					return false;
 				}
-				else if (c != ':' && c != '\n')
+				else if (c == JsonToken::JsonTwoPoints)
 				{
-					found = true;
+					return false;
+				}
+				else if (c != JsonToken::JsonNewLine)
+				{
 					id_start = i;
 				}
-				else if(!found && c == ':')
-				{
-					return false;
-				}
 			}
-			else if (found && c == ':')
+			else if (c == JsonToken::JsonTwoPoints)
 			{
 				id_length = i - id_start;
 				return true;
@@ -152,63 +73,80 @@ namespace jsp
 	}
 
 	// Get next object
-	JsonObject* getObject(const std::string& raw_data, uint32_t start, uint32_t& end)
+	JsonObject* getObject(const std::string& raw_data, size_t start, size_t& end)
 	{
 		JsonObject* object = new JsonObject();
 
-		uint32_t size(raw_data.size());
+		size_t size(raw_data.size());
 		if (size == 0)
 			return object;
 
-		uint32_t i(start);
+		size_t i(start);
 		while (i < size)
 		{
-			uint32_t id_start, id_length;
-			if (getIdentifier(raw_data, i + 1, id_start, id_length))
-			{
-				const std::string identifier = raw_data.substr(id_start, id_length);
-				std::cout << "Found identtifier " << identifier << std::endl;
-				i = id_start + id_length + 1;
-
-				uint32_t val_start(0);
-				for (uint32_t j(i); j < size; ++j)
-				{
-					const char c(raw_data[j]);
-					if (c == '{')
-					{
-						object->add(identifier, getObject(raw_data, j, i));
-						break;
-					}
-					else if (c == '}')
-					{
-						uint32_t data_length(j - val_start);
-						const std::string value(raw_data.substr(val_start, data_length));
-						std::cout << "Add data child with value:" << value << std::endl;
-						JsonData* data = new JsonData(value);
-						object->add(identifier, data);
-
-						return object;
-					}
-					else if (c == ',')
-					{
-						uint32_t data_length(j - val_start);
-						JsonData* data = new JsonData(raw_data.substr(val_start, data_length));
-						object->add(identifier, data);
-						break;
-					}
-					else if (c != ' ' && !val_start)
-					{
-						std::cout << "Found value " << c << " at " << j << std::endl;
-						val_start = j;
-					}
-				}
-			}
-			else
+			size_t id_start, id_length;
+			if (raw_data[i] == JsonToken::JsonClosedBracket)
 			{
 				break;
 			}
+			else if (getIdentifier(raw_data, i + 1, id_start, id_length))
+			{
+				const std::string identifier = raw_data.substr(id_start, id_length);
+				i = id_start + id_length + 1;
+				object->add(identifier, getChild(raw_data, i, i));
+			} 
+			else
+			{
+				++i;
+			}
 		}
 
+		end = i + 1;
 		return object;
+	}
+
+	JsonData* getValue(const std::string& raw_data, size_t start, size_t& end)
+	{
+		const size_t size(raw_data.size());
+
+		size_t val_start(0);
+		for (size_t i(start); i < size; ++i)
+		{
+			const char c(raw_data[i]);
+			if (c == JsonToken::JsonClosedBracket || c == JsonToken::JsonComa)
+			{
+				end = i;
+				JsonData* data = new JsonData(extract(raw_data, val_start, i));
+				return data;
+			}
+			else if (c != JsonToken::JsonSpace && !val_start)
+			{
+				val_start = i;
+			}
+		}
+
+		end = size;
+		return new JsonData();
+	}
+
+	JsonBase* getChild(const std::string& raw_data, size_t start, size_t& end)
+	{
+		size_t size(raw_data.size());
+
+		for (size_t j(skipSpace(raw_data, start)); j < size; ++j)
+		{
+			end = j;
+			const char c(raw_data[j]);
+			if (c == JsonToken::JsonOpenBracket)
+			{
+				return getObject(raw_data, j, end);
+			}
+			else
+			{
+				return getValue(raw_data, j, end);
+			}
+		}
+
+		return new JsonData();
 	}
 }

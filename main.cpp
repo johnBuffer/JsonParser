@@ -3,8 +3,18 @@
 
 int main()
 {
-	uint32_t end;
-	jsp::JsonObject* root = jsp::getObject("{lol:7,k:5}", 0, end);
+	size_t end;
+
+	const std::string data("{ \
+		lol: 7,\
+        k: 5,\
+        mam: {\
+            j: 78\
+        },\
+		lil : {}\
+     }");
+
+	jsp::JsonObject* root = jsp::getObject(data, 0, end);
 	
 	root->print("");
 
