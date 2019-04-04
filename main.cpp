@@ -14,8 +14,7 @@ int main()
 		}\
      }");
 
-	size_t end(0);
-	jsp::JsonObject root(jsp::getObject(data, end));
+	jsp::JsonObject root(data);
 
 	std::cout << root["mam"]["j"].asString() << std::endl;
 

@@ -135,41 +135,5 @@ struct JsonArray : public JsonBase
 	std::vector<JsonBase*> m_items;
 };
 
-
-class JsonObject
-{
-public:
-	JsonObject() :
-		m_object(new JsonDict())
-	{}
-
-	JsonObject(JsonBase* object) :
-		m_object(object)
-	{}
-
-	JsonObject operator[](const std::string& name)
-	{
-		return (*m_object)[name];
-	}
-
-	float asFloat() const 
-	{
-		return m_object->asFloat();
-	}
-
-	int asInt() const
-	{ 
-		return m_object->asInt();
-	}
-
-	const std::string& asString() const 
-	{ 
-		return m_object->asString(); 
-	}
-
-private:
-	JsonBase* m_object;
-};
-
 } // Namespace's end
 
