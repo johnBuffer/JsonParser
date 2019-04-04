@@ -100,11 +100,27 @@ struct JsonObject : public JsonBase
 
 struct JsonArray : public JsonBase
 {
-	JsonArray();
+	JsonArray() :
+		JsonBase()
+	{}
 
-	void add(const JsonObject& item);
+	void add(JsonBase* item)
+	{
+		m_items.push_back(item);
+	}
 
-	std::vector<JsonObject> m_items;
+	void print(const std::string& indent) const
+	{
+		const std::string next_indent(indent + "    ");
+		std::cout << "[" << std::endl;
+		for (JsonBase* jsb : m_items)
+		{
+			jsb->print(next_indent);
+		}
+		std::cout << indent << "]" << std::endl;
+	}
+
+	std::vector<JsonBase*> m_items;
 };
 
 } // Namespace's end

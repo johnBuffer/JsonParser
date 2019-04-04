@@ -11,11 +11,14 @@ int main()
         mam: {\
             j: 78\
         },\
-		lil : {}\
+		lil : { \
+		ar : [5, 6, 7],\
+		l: 3\
+		}\
      }");
 
 	jsp::JsonObject* root = jsp::getObject(data, end);
-	
+
 	root->print("");
 
 	return 0;
