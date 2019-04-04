@@ -73,9 +73,9 @@ bool getIdentifier(const std::string& raw_data, size_t& index, size_t& id_start)
 	return false;
 }
 
-JsonBase* getChild(const std::string& raw_data, size_t& index);
+JsonBasePtr getChild(const std::string& raw_data, size_t& index);
 	
-JsonData* getValue(const std::string& raw_data, size_t& index)
+JsonDataPtr getValue(const std::string& raw_data, size_t& index)
 {
 	const size_t size(raw_data.size());
 	size_t val_start(0);
@@ -84,22 +84,22 @@ JsonData* getValue(const std::string& raw_data, size_t& index)
 		const char c(raw_data[index]);
 		if (c == JsonToken::JsonClosedBrace || c == JsonToken::JsonClosedBracket || c == JsonToken::JsonComa)
 		{
-			return new JsonData(extract(raw_data, val_start, index));
+			return std::make_shared<JsonData>(extract(raw_data, val_start, index));
 		}
 		else if (c == JsonToken::JsonQuote)
 		{
-			return new JsonData(getQuotedValue(raw_data, ++index));
+			return std::make_shared<JsonData>(getQuotedValue(raw_data, ++index));
 		}
 		else if (c != JsonToken::JsonSpace && !val_start) {
 			val_start = index;
 		}
 	}
-	return new JsonData();
+	return std::make_shared<JsonData>();
 }
 
-JsonDict* getObject(const std::string& raw_data, size_t& index)
+JsonDictPtr getObject(const std::string& raw_data, size_t& index)
 {
-	JsonDict* object(new JsonDict());
+	JsonDictPtr object(std::make_shared<JsonDict>());
 	size_t size(raw_data.size());
 	if (!size) {
 		return object;
@@ -122,9 +122,9 @@ JsonDict* getObject(const std::string& raw_data, size_t& index)
 	return object;
 }
 
-JsonArray* getArray(const std::string& raw_data, size_t& index)
+JsonArrayPtr getArray(const std::string& raw_data, size_t& index)
 {
-	JsonArray* j_array(new JsonArray());
+	JsonArrayPtr j_array(std::make_shared<JsonArray>());
 	const size_t size(raw_data.size());
 
 	while (index < size)
@@ -145,7 +145,7 @@ JsonArray* getArray(const std::string& raw_data, size_t& index)
 	return j_array;
 }
 
-JsonBase* getChild(const std::string& raw_data, size_t& index)
+JsonBasePtr getChild(const std::string& raw_data, size_t& index)
 {
 	size_t size(raw_data.size());
 	for (skipSpace(raw_data, index); index < size; ++index)
@@ -159,10 +159,10 @@ JsonBase* getChild(const std::string& raw_data, size_t& index)
 			return getValue(raw_data, index);
 		}
 	}
-	return new JsonData();
+	return  std::make_shared<JsonData>();
 }
 
-
+// More user friendly wrapper
 class JsonObject
 {
 public:
@@ -198,11 +198,11 @@ public:
 	}
 
 private:
-	explicit JsonObject(JsonBase* object) :
+	explicit JsonObject(JsonBasePtr object) :
 		m_object(object)
 	{}
 
-	JsonBase* m_object;
+	JsonBasePtr m_object;
 };
 
 }

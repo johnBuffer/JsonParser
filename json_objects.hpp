@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <memory>
 
 namespace jsp
 {
@@ -19,6 +20,16 @@ enum ObjectType
 	JSON_OBJECT
 };
 
+struct JsonBase;
+struct JsonData;
+struct JsonDict;
+struct JsonArray;
+
+using JsonBasePtr = std::shared_ptr<JsonBase>;
+using JsonDataPtr = std::shared_ptr<JsonData>;
+using JsonDictPtr = std::shared_ptr<JsonDict>;
+using JsonArrayPtr = std::shared_ptr<JsonArray>;
+
 struct JsonBase
 {
 	JsonBase() = default;
@@ -27,10 +38,10 @@ struct JsonBase
 	virtual void print(const std::string& indent) const = 0;
 	
 	// Objects operators and their default fallbacks
-	virtual JsonBase* operator[](const std::string& name) { return nullptr; }
-	virtual float     asFloat() const { return 0.0f; }
-	virtual int       asInt() const { return 0; }
-	virtual const     std::string& asString() const { return std::string(); }
+	virtual JsonBasePtr operator[](const std::string& name) { return nullptr; }
+	virtual float       asFloat() const { return 0.0f; }
+	virtual int         asInt() const { return 0; }
+	virtual const       std::string& asString() const { return std::string(); }
 };
 
 struct JsonData : public JsonBase
@@ -82,12 +93,12 @@ struct JsonDict : public JsonBase
 		JsonBase()
 	{}
 
-	void add(const std::string& key, JsonBase* child)
+	void add(const std::string& key, JsonBasePtr child)
 	{
 		m_childs[key] = child;
 	}
 
-	JsonBase* operator[](const std::string& name)
+	JsonBasePtr operator[](const std::string& name)
 	{
 		auto it(m_childs.find(name));
 		if (it != m_childs.end()) {
@@ -108,7 +119,7 @@ struct JsonDict : public JsonBase
 	}
 
 	std::string m_value;
-	std::unordered_map<std::string, JsonBase*> m_childs;
+	std::unordered_map<std::string, JsonBasePtr> m_childs;
 };
 
 struct JsonArray : public JsonBase
@@ -117,7 +128,7 @@ struct JsonArray : public JsonBase
 		JsonBase()
 	{}
 
-	void add(JsonBase* item)
+	void add(JsonBasePtr item)
 	{
 		m_items.push_back(item);
 	}
@@ -126,13 +137,13 @@ struct JsonArray : public JsonBase
 	{
 		const std::string next_indent(indent + "    ");
 		std::cout << "[" << std::endl;
-		for (JsonBase* jsb : m_items) {
+		for (JsonBasePtr jsb : m_items) {
 			jsb->print(next_indent);
 		}
 		std::cout << indent << "]" << std::endl;
 	}
 
-	std::vector<JsonBase*> m_items;
+	std::vector<JsonBasePtr> m_items;
 };
 
 } // Namespace's end
