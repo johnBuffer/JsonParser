@@ -6,16 +6,16 @@ namespace jsp
 {
 	enum JsonToken
 	{
-		JsonOpenBrace = '{',
-		JsonClosedBrace = '}',
-		JsonOpenBraket = '[',
-		JsonClosedBracket = ']',
-		JsonQuote = '"',
-		JsonComa = ',',
-		JsonColumn = ':',
-		JsonNewLine = '\n',
-		JsonSpace = ' ',
-		JsonTab = '\t'
+		JsonTab           = '\t',
+		JsonComa          = ',',
+		JsonSpace         = ' ',
+		JsonQuote         = '"',
+		JsonColumn        = ':',
+		JsonNewLine       = '\n',
+		JsonOpenBrace     = '{',
+		JsonOpenBraket    = '[',
+		JsonClosedBrace   = '}',
+		JsonClosedBracket = ']'
 	};
 
 	const std::string extract(const std::string& str, size_t start, size_t end)
